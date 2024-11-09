@@ -11,9 +11,6 @@ nano ~/.zshrc
 alias gitpush='/chemin/vers/git-push.sh'
 ```
 ```bash
-enregistrer
-```
-```bash
 source ~/.zshrc
 ```
 
