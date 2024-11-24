@@ -7,20 +7,77 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Définir des couleurs supplémentaires
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+LIGHT_GREEN='\033[1;32m'
+LIGHT_YELLOW='\033[1;33m'
+LIGHT_BLUE='\033[1;34m'
+LIGHT_MAGENTA='\033[1;35m'
+LIGHT_CYAN='\033[1;36m'
+
 # Liste des types de branches acceptés – histoire de garder tout propre et structuré
-BRANCHES_VALIDES=("feature" "fix" "chore" "update" "hotfix" "release")
+BRANCHES_VALIDES=("feature" "refactor" "fix" "chore" "update" "hotfix" "release")
+
+# Ajouter cette fonction après les définitions initiales et avant select_type_branche
+validate_branch_name() {
+    local name=$1
+    # Vérifie si le nom est vide
+    if [[ -z "$name" ]]; then
+        echo -e "${RED}Erreur: Le nom de la fonctionnalité ne peut pas être vide${NC}"
+        return 1
+    fi
+    
+    # Vérifie le format du nom
+    if [[ ! $name =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
+        echo -e "${RED}Erreur: Le nom de la fonctionnalité doit:${NC}"
+        echo -e "${RED}- Commencer par une lettre ou un chiffre${NC}"
+        echo -e "${RED}- Ne contenir que des lettres, chiffres, tirets (-) et underscores (_)${NC}"
+        return 1
+    fi
+    
+    # Vérifie la longueur
+    if [[ ${#name} -gt 50 ]]; then
+        echo -e "${RED}Erreur: Le nom est trop long (maximum 50 caractères)${NC}"
+        return 1
+    fi
+    
+    return 0
+}
 
 # Petit menu pour sélectionner le type de branche. Ça évite d’avoir à tout taper à la main.
 select_type_branche() {
+  # Utilisation de PS3 pour personnaliser le prompt
+  PS3=$'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : "
+  
   echo -e "${BLUE}Sélectionnez le type de branche :${NC}"
-  select type in "${BRANCHES_VALIDES[@]}"; do
-    # Si l'utilisateur choisit quelque chose, on passe à la suite
-    if [[ -n "$type" ]]; then
-      TYPE_BRANCHE=$type
+  
+  # Tableau des couleurs pour chaque type de branche
+  declare -A BRANCH_COLORS=(
+    ["feature"]="${CYAN}"
+    ["refactor"]="${MAGENTA}"
+    ["fix"]="${LIGHT_GREEN}"
+    ["chore"]="${LIGHT_YELLOW}"
+    ["update"]="${LIGHT_BLUE}"
+    ["hotfix"]="${RED}"
+    ["release"]="${LIGHT_CYAN}"
+  )
+  
+  # Personnalisation de l'affichage du menu
+  local i=1
+  for branch in "${BRANCHES_VALIDES[@]}"; do
+    echo -e "$i) ${BRANCH_COLORS[$branch]}$branch${NC}"
+    ((i++))
+  done
+  
+  while true; do
+    read -p $'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : " choice
+    if [[ "$choice" =~ ^[1-7]$ ]]; then
+      TYPE_BRANCHE=${BRANCHES_VALIDES[$((choice-1))]}
+      echo -e "Type sélectionné : ${BRANCH_COLORS[$TYPE_BRANCHE]}$TYPE_BRANCHE${NC}"
       break
     else
-      # Au cas où l'utilisateur se trompe, on lui redonne une chance
-      echo -e "${RED}Sélection invalide. Veuillez essayer à nouveau.${NC}"
+      echo -e "${RED}Sélection invalide. Veuillez choisir un numéro entre 1 et ${#BRANCHES_VALIDES[@]}.${NC}"
     fi
   done
 }
@@ -29,8 +86,14 @@ select_type_branche() {
 select_type_branche
 
 # Demande à l'utilisateur de renseigner les infos pour la branche et le commit
-read -p "Entrez le nom de la fonctionnalité : " NOM_FONCTIONNALITE
-read -p "Entrez le message de commit : " MESSAGE_COMMIT
+while true; do
+    read -e -p "Entrez le nom de la fonctionnalité : " NOM_FONCTIONNALITE
+    if validate_branch_name "$NOM_FONCTIONNALITE"; then
+        break
+    fi
+    echo -e "${YELLOW}Veuillez réessayer.${NC}"
+done
+read -e -p "Entrez le message de commit : " MESSAGE_COMMIT
 
 # Construction du nom de la branche en combinant type et nom de fonctionnalité
 BRANCHE_NOM="$TYPE_BRANCHE/$NOM_FONCTIONNALITE"
@@ -99,3 +162,4 @@ git push origin --delete $BRANCHE_NOM || { echo -e "${RED}Erreur : impossible de
 
 # Et voilà, tout est en ordre !
 echo -e "${GREEN}Processus complet terminé.${NC}"
+
