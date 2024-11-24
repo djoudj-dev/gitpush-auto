@@ -63,10 +63,21 @@ select_type_branche() {
     ["release"]="${LIGHT_CYAN}"
   )
   
+  # Tableau des icônes pour chaque type de branche
+  declare -A BRANCH_ICONS=(
+    ["feature"]="✨"    # Étincelles pour nouvelle fonctionnalité
+    ["refactor"]="♻️"   # Recyclage pour refactoring
+    ["fix"]="🔧"       # Clé pour réparation
+    ["chore"]="🧹"     # Balai pour tâches de maintenance
+    ["update"]="⬆️"    # Flèche vers le haut pour mise à jour
+    ["hotfix"]="🚨"    # Alarme pour correctif urgent
+    ["release"]="🚀"   # Fusée pour nouvelle version
+  )
+  
   # Personnalisation de l'affichage du menu
   local i=1
   for branch in "${BRANCHES_VALIDES[@]}"; do
-    echo -e "$i) ${BRANCH_COLORS[$branch]}$branch${NC}"
+    echo -e "$i) ${BRANCH_ICONS[$branch]} ${BRANCH_COLORS[$branch]}$branch${NC}"
     ((i++))
   done
   
@@ -74,7 +85,7 @@ select_type_branche() {
     read -p $'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : " choice
     if [[ "$choice" =~ ^[1-7]$ ]]; then
       TYPE_BRANCHE=${BRANCHES_VALIDES[$((choice-1))]}
-      echo -e "Type sélectionné : ${BRANCH_COLORS[$TYPE_BRANCHE]}$TYPE_BRANCHE${NC}"
+      echo -e "Type sélectionné : ${BRANCH_ICONS[$TYPE_BRANCHE]} ${BRANCH_COLORS[$TYPE_BRANCHE]}$TYPE_BRANCHE${NC}"
       break
     else
       echo -e "${RED}Sélection invalide. Veuillez choisir un numéro entre 1 et ${#BRANCHES_VALIDES[@]}.${NC}"
