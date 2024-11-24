@@ -24,9 +24,19 @@ Lancer l'alias gitpush dans le terminal est très simple ! Assurez-vous d'être 
 
 Le script git-push.sh va vous guider à travers plusieurs étapes pour organiser votre travail dans Git. Voici chaque étape, expliquée simplement.
 
-## 1) Sélection du Type de Branche
+## 🎯 Étapes Automatisées par git-push.sh
+1️⃣ Sélection du Type de Branche
+Un menu interactif vous permet de choisir parmi les types suivants :
 
-- Le script commence par vous demander de choisir le type de branche dans une liste (par exemple : "feature" "fix" "chore" "update" "hotfix" "release").Vous sélectionnez le type de branche avec les flèches, puis appuyez sur Entrée pour confirmer.
+✨ feature
+🔧 fix
+🧹 chore
+🚨 hotfix
+🚀 release
+♻️ refactor
+⬆️ update
+💡 Avantage : Respect des conventions pour un projet organisé.
+
 #### 💡 Pourquoi ? Cela assure que toutes les branches suivent une convention de nommage, pour un projet bien organisé.
 
 ## 2) Entrez les Détails de la Branche et du Commit
