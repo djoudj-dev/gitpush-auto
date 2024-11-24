@@ -28,14 +28,14 @@ Le script git-push.sh va vous guider à travers plusieurs étapes pour organiser
 1️⃣ Sélection du Type de Branche
 Un menu interactif vous permet de choisir parmi les types suivants :
 
-✨ feature
-🔧 fix
-🧹 chore
-🚨 hotfix
-🚀 release
-♻️ refactor
-⬆️ update
-💡 Avantage : Respect des conventions pour un projet organisé.
+- ✨ feature
+- 🔧 fix
+- 🧹 chore
+- 🚨 hotfix
+- 🚀 release
+- ♻️ refactor
+- ⬆️ update
+- 💡 Avantage : Respect des conventions pour un projet organisé.
 
 #### 💡 Pourquoi ? Cela assure que toutes les branches suivent une convention de nommage, pour un projet bien organisé.
 
