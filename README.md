@@ -1,3 +1,6 @@
+# 🔒 Amélioration de la Sécurité : Empêcher les Pushs sur master
+Le script a été mis à jour pour empêcher les pushes sur la branche master directement. Si vous êtes sur master, le script vous empêchera de continuer et vous demandera de vous positionner sur une autre branche. Cela garantit que la branche master reste protégée et que toutes les modifications passent par un processus de revue via des branches de fonctionnalité et des Pull Requests.
+
 
 # 📦 Utilisation de gitpush – Automatisation du Processus Git
 
