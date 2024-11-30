@@ -35,9 +35,22 @@ validate_branch_name() {
     return 0
 }
 
-# Supprimer la branche locale et distante après le merge
+# Supprimer la branche locale et distante après vérification du worktree
 delete_branch() {
     local branch=$1
+
+    # Vérifier si la branche est active dans le worktree principal
+    local current_branch=$(git symbolic-ref --short HEAD)
+    if [[ "$current_branch" == "$branch" ]]; then
+        echo -e "${YELLOW}La branche ${branch} est active dans le worktree principal.${NC}"
+        echo -e "${YELLOW}Bascule sur develop avant de supprimer la branche...${NC}"
+        git checkout develop || {
+            echo -e "${RED}Erreur : impossible de basculer sur develop.${NC}"
+            exit 1
+        }
+    fi
+
+    # Supprimer la branche locale
     echo -e "${YELLOW}Suppression de la branche locale ${branch}...${NC}"
     git branch -d "$branch" || {
         echo -e "${RED}Erreur : impossible de supprimer la branche locale ${branch}.${NC}"
@@ -45,6 +58,7 @@ delete_branch() {
     }
     echo -e "${GREEN}La branche locale ${branch} a été supprimée.${NC}"
 
+    # Supprimer la branche distante
     echo -e "${YELLOW}Suppression de la branche distante ${branch}...${NC}"
     git push origin --delete "$branch" || {
         echo -e "${RED}Erreur : impossible de supprimer la branche distante ${branch}.${NC}"
