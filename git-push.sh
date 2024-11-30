@@ -7,15 +7,18 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-LIGHT_GREEN='\033[1;32m'
-LIGHT_YELLOW='\033[1;33m'
-LIGHT_BLUE='\033[1;34m'
-LIGHT_CYAN='\033[1;36m'
+# Liste des types de branches acceptés avec icônes
+BRANCH_ICONS=(
+    "✨ feature"
+    "♻️ refactor"
+    "🔧 fix"
+    "🧹 chore"
+    "⬆️ update"
+    "🚨 hotfix"
+    "🚀 release"
+)
 
-# Liste des types de branches acceptés
-BRANCHES_VALIDES=("feature" "refactor" "fix" "chore" "update" "hotfix" "release")
+BRANCH_TYPES=("feature" "refactor" "fix" "chore" "update" "hotfix" "release")
 
 # Fonction pour valider le nom de la branche
 validate_branch_name() {
@@ -35,67 +38,80 @@ validate_branch_name() {
     return 0
 }
 
-# Supprimer la branche locale et distante après vérification
-delete_branch() {
-    local branch=$1
-
-    # Vérifier si la branche est active dans le worktree principal
+# Vérification de la branche active
+check_branch() {
     local current_branch=$(git symbolic-ref --short HEAD)
-    if [[ "$current_branch" == "$branch" ]]; then
-        echo -e "${YELLOW}La branche ${branch} est active dans le worktree principal.${NC}"
-        echo -e "${YELLOW}Bascule sur develop avant de supprimer la branche...${NC}"
-        git checkout develop || {
-            echo -e "${RED}Erreur : impossible de basculer sur develop.${NC}"
-            exit 1
-        }
+    echo -e "${YELLOW}Vous êtes actuellement sur la branche : ${BLUE}${current_branch}${NC}"
+
+    if [[ "$current_branch" == "master" ]]; then
+        echo -e "${RED}Erreur : Vous ne pouvez pas travailler directement sur master.${NC}"
+        exit 1
     fi
 
-    # Supprimer la branche locale
-    echo -e "${YELLOW}Suppression de la branche locale ${branch}...${NC}"
-    git branch -d "$branch" || {
-        echo -e "${RED}Erreur : impossible de supprimer la branche locale ${branch}.${NC}"
-        exit 1
-    }
-    echo -e "${GREEN}La branche locale ${branch} a été supprimée.${NC}"
+    if [[ "$current_branch" != "develop" ]]; then
+        echo -e "${YELLOW}Voulez-vous changer pour la branche develop ?${NC}"
+        select choice in "Oui" "Non"; do
+            case $REPLY in
+                1)
+                    git checkout develop || {
+                        echo -e "${RED}Erreur : impossible de basculer sur develop.${NC}"
+                        exit 1
+                    }
+                    break
+                    ;;
+                2)
+                    echo -e "${RED}Abandon du script.${NC}"
+                    exit 1
+                    ;;
+                *)
+                    echo -e "${RED}Choix invalide. Veuillez sélectionner 1 ou 2.${NC}"
+                    ;;
+            esac
+        done
+    fi
+}
 
-    # Supprimer la branche distante
-    echo -e "${YELLOW}Suppression de la branche distante ${branch}...${NC}"
-    git push origin --delete "$branch" || {
-        echo -e "${RED}Erreur : impossible de supprimer la branche distante ${branch}.${NC}"
-        exit 1
-    }
-    echo -e "${GREEN}La branche distante ${branch} a été supprimée.${NC}"
+# Vérification des modifications locales non indexées
+check_local_changes() {
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo -e "${RED}Erreur : Vous avez des modifications locales non validées.${NC}"
+        echo -e "${YELLOW}Voulez-vous les valider ou les remiser ?${NC}"
+        select choice in "Valider" "Remiser" "Annuler le script"; do
+            case $REPLY in
+                1)
+                    echo -e "${YELLOW}Validation des modifications locales...${NC}"
+                    git add . || exit 1
+                    read -e -p "Entrez le message de commit : " MESSAGE_COMMIT
+                    git commit -m "$MESSAGE_COMMIT" || exit 1
+                    break
+                    ;;
+                2)
+                    echo -e "${YELLOW}Remise des modifications locales...${NC}"
+                    git stash || exit 1
+                    break
+                    ;;
+                3)
+                    echo -e "${RED}Abandon du script.${NC}"
+                    exit 1
+                    ;;
+                *)
+                    echo -e "${RED}Choix invalide. Veuillez sélectionner 1, 2 ou 3.${NC}"
+                    ;;
+            esac
+        done
+    fi
 }
 
 # Sélectionner le type de branche
 select_type_branche() {
-    PS3=$'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : "
-    echo -e "${BLUE}Sélectionnez le type de branche :${NC}"
-
-    declare -A BRANCH_ICONS=(
-        ["feature"]="✨"
-        ["refactor"]="♻️"
-        ["fix"]="🔧"
-        ["chore"]="🧹"
-        ["update"]="⬆️"
-        ["hotfix"]="🚨"
-        ["release"]="🚀"
-    )
-
-    local i=1
-    for branch in "${BRANCHES_VALIDES[@]}"; do
-        echo -e "$i) ${BRANCH_ICONS[$branch]} ${branch}"
-        ((i++))
-    done
-
-    while true; do
-        read -p $'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : " choice
-        if [[ "$choice" =~ ^[1-${#BRANCHES_VALIDES[@]}]$ ]]; then
-            TYPE_BRANCHE=${BRANCHES_VALIDES[$((choice-1))]}
-            echo -e "${GREEN}Type sélectionné : ${TYPE_BRANCHE}${NC}"
+    echo -e "${YELLOW}Sélectionnez le type de branche :${NC}"
+    select branch_type_with_icon in "${BRANCH_ICONS[@]}"; do
+        if [[ -n "$branch_type_with_icon" ]]; then
+            TYPE_BRANCHE=${BRANCH_TYPES[$((REPLY-1))]}
+            echo -e "${GREEN}Type sélectionné : ${branch_type_with_icon}${NC}"
             break
         else
-            echo -e "${RED}Sélection invalide. Veuillez choisir un numéro entre 1 et ${#BRANCHES_VALIDES[@]}.${NC}"
+            echo -e "${RED}Sélection invalide. Veuillez réessayer.${NC}"
         fi
     done
 }
@@ -111,64 +127,66 @@ get_branch_name() {
     done
 }
 
-# Création de la branche fonctionnelle
+# Créer une branche fonctionnelle
 create_branch() {
     local branch_name=$1
     echo -e "${GREEN}Création de la branche ${branch_name} à partir de develop...${NC}"
-    git checkout develop || {
-        echo -e "${RED}Erreur : impossible de basculer sur develop.${NC}"
-        exit 1
-    }
-    git pull origin develop || {
-        echo -e "${RED}Erreur : impossible de mettre à jour develop.${NC}"
-        exit 1
-    }
-    git checkout -b "$branch_name" || {
-        echo -e "${RED}Erreur : impossible de créer la branche ${branch_name}.${NC}"
-        exit 1
-    }
+    git checkout develop || exit 1
+    git pull origin develop || exit 1
+    git checkout -b "$branch_name" || exit 1
 }
 
-# Validation des modifications
+# Valider et pousser les modifications
 commit_and_push() {
     local branch_name=$1
-    read -e -p "Entrez le message de commit : " MESSAGE_COMMIT
-    git add . || { echo -e "${RED}Erreur : impossible d'ajouter les fichiers.${NC}"; exit 1; }
-    git commit -m "$MESSAGE_COMMIT" || { echo -e "${RED}Erreur : impossible de valider les modifications.${NC}"; exit 1; }
-    git push -u origin "$branch_name" || { echo -e "${RED}Erreur : impossible de pousser la branche.${NC}"; exit 1; }
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        read -e -p "Entrez le message de commit : " MESSAGE_COMMIT
+        git add . || exit 1
+        git commit -m "$MESSAGE_COMMIT" || exit 1
+    fi
+    git push -u origin "$branch_name" || exit 1
     echo -e "${GREEN}La branche ${branch_name} a été poussée avec succès.${NC}"
 }
 
-# Fusion dans develop
+# Fusionner dans develop
 merge_to_develop() {
     local branch_name=$1
     echo -e "${YELLOW}Fusion de ${branch_name} dans develop...${NC}"
-    git checkout develop || {
-        echo -e "${RED}Erreur : impossible de basculer sur develop.${NC}"
-        exit 1
-    }
-    git pull origin develop || {
-        echo -e "${RED}Erreur : impossible de mettre à jour develop.${NC}"
-        exit 1
-    }
-    git merge --no-ff "$branch_name" || {
-        echo -e "${RED}Erreur : impossible de fusionner ${branch_name} dans develop.${NC}"
-        exit 1
-    }
-    git push origin develop || {
-        echo -e "${RED}Erreur : impossible de pousser develop après la fusion.${NC}"
-        exit 1
-    }
+    git checkout develop || exit 1
+    git pull origin develop || exit 1
+    git merge --no-ff "$branch_name" || exit 1
+    git push origin develop || exit 1
     echo -e "${GREEN}Fusion réussie.${NC}"
 }
 
+# Supprimer une branche locale et distante après fusion
+delete_branch() {
+    local branch_name=$1
+    echo -e "${YELLOW}Suppression de la branche locale ${branch_name}...${NC}"
+    git branch -d "$branch_name" || {
+        echo -e "${YELLOW}Aucune modification détectée dans ${branch_name}. Suppression forcée.${NC}"
+        git branch -D "$branch_name"
+    }
+    echo -e "${GREEN}Branche locale supprimée avec succès.${NC}"
+
+    # Suppression de la branche distante
+    echo -e "${YELLOW}Suppression de la branche distante ${branch_name}...${NC}"
+    git push origin --delete "$branch_name" || {
+        echo -e "${RED}Erreur : impossible de supprimer la branche distante ${branch_name}.${NC}"
+    }
+    echo -e "${GREEN}Branche distante ${branch_name} supprimée avec succès.${NC}"
+}
+
 # Script principal
+check_branch
+check_local_changes
 select_type_branche
 get_branch_name
 BRANCHE_NOM="${TYPE_BRANCHE}/${NOM_FONCTIONNALITE}"
+
 create_branch "$BRANCHE_NOM"
 commit_and_push "$BRANCHE_NOM"
 merge_to_develop "$BRANCHE_NOM"
 delete_branch "$BRANCHE_NOM"
 
-echo -e "${GREEN}Processus terminé avec succès.${NC}"
+echo -e "${GREEN}Processus terminé avec succès. N'oubliez pas de créer une Pull Request sur GitHub si nécessaire.${NC}"
