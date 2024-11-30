@@ -1,22 +1,27 @@
 #!/bin/bash
 
 # Définir les codes de couleur ANSI et styles
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
+RED='\033[38;5;196m'
+GREEN='\033[38;5;46m'
+YELLOW='\033[38;5;226m'
+BLUE='\033[38;5;39m'
+CYAN='\033[38;5;51m'
+MAGENTA='\033[38;5;201m'
+ORANGE='\033[38;5;214m'
 BOLD='\033[1m'
+DIM='\033[2m'
+ITALIC='\033[3m'
 NC='\033[0m' # No Color
 
 # Liste des types de branches acceptés avec icônes
 BRANCH_ICONS=(
-    "${BOLD}✨ feature${NC}"
-    "${BOLD}♻️ refactor${NC}"
-    "${BOLD}🔧 fix${NC}"
-    "${BOLD}🧹 chore${NC}"
-    "${BOLD}⬆️ update${NC}"
-    "${BOLD}🚨 hotfix${NC}"
-    "${BOLD}🚀 release${NC}"
+    "${GREEN}${BOLD}🌟 feature${NC}"
+    "${BLUE}${BOLD}🔄 refactor${NC}"
+    "${RED}${BOLD}🛠️  fix${NC}"
+    "${ORANGE}${BOLD}🧰 chore${NC}"
+    "${CYAN}${BOLD}📦 update${NC}"
+    "${MAGENTA}${BOLD}🚑 hotfix${NC}"
+    "${GREEN}${BOLD}🚀 release${NC}"
 )
 
 BRANCH_TYPES=("feature" "refactor" "fix" "chore" "update" "hotfix" "release")
@@ -109,12 +114,12 @@ check_local_changes() {
 # Sélectionner le type de branche
 select_type_branche() {
     echo -e "${YELLOW}${BOLD}Sélectionnez le type de branche :${NC}"
-    
-    # Afficher les options avec leurs numéros
+
+    # Afficher chaque option avec ses couleurs et styles
     for i in "${!BRANCH_ICONS[@]}"; do
         echo -e "  ${BOLD}$((i+1))) ${BRANCH_ICONS[i]}${NC}"
     done
-    
+
     # Lire le choix de l'utilisateur
     while true; do
         read -p "Votre choix (1-${#BRANCH_ICONS[@]}) : " choice
@@ -127,7 +132,6 @@ select_type_branche() {
         fi
     done
 }
-
 
 # Demander et valider le nom de la fonctionnalité
 get_branch_name() {
