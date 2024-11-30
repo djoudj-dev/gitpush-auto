@@ -21,7 +21,7 @@ BRANCHES_VALIDES=("feature" "refactor" "fix" "chore" "update" "hotfix" "release"
 validate_branch_name() {
     local name=$1
     if [[ -z "$name" ]]; then
-        echo -e "${RED}Erreur: Le nom de la fonctionnalité ne peut pas être vide${NC}"
+        echo -e "${RED}Erreur: Le nom de la fonctionnalité ne peut pas être vide.${NC}"
         return 1
     fi
     if [[ ! $name =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
@@ -29,13 +29,13 @@ validate_branch_name() {
         return 1
     fi
     if [[ ${#name} -gt 50 ]]; then
-        echo -e "${RED}Erreur: Le nom est trop long (maximum 50 caractères)${NC}"
+        echo -e "${RED}Erreur: Le nom est trop long (maximum 50 caractères).${NC}"
         return 1
     fi
     return 0
 }
 
-# Supprimer la branche locale et distante après vérification du worktree
+# Supprimer la branche locale et distante après vérification
 delete_branch() {
     local branch=$1
 
@@ -92,7 +92,7 @@ select_type_branche() {
         read -p $'\n'"📌 Votre choix (1-${#BRANCHES_VALIDES[@]}) : " choice
         if [[ "$choice" =~ ^[1-${#BRANCHES_VALIDES[@]}]$ ]]; then
             TYPE_BRANCHE=${BRANCHES_VALIDES[$((choice-1))]}
-            echo -e "Type sélectionné : ${branch}"
+            echo -e "${GREEN}Type sélectionné : ${TYPE_BRANCHE}${NC}"
             break
         else
             echo -e "${RED}Sélection invalide. Veuillez choisir un numéro entre 1 et ${#BRANCHES_VALIDES[@]}.${NC}"
