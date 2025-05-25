@@ -1,157 +1,303 @@
-# 📦 Utilisation de gitpush – Automatisation du Processus Git
+# 📦 GitPush - Git Workflow Automation Script
 
-Pour rendre le processus de gestion des branches, des commits, et des fusions plus rapide et plus organisé, j’ai créé un alias appelé gitpush. Cet alias utilise un script (git-push.sh) pour automatiser toutes les étapes de mon flux de travail Git. Voici comment tout fonctionne, étape par étape !
+<div style="text-align: center;">
+  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platform: Linux | macOS | Windows">
+  <img src="https://img.shields.io/badge/Language-Bash-green" alt="Language: Bash">
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License: MIT">
+</div>
 
-# 🏁 Pour commencer créer un alias
-```bash
-nano ~/.zshrc
-```
-```bash
-alias gitpush='/chemin/vers/git-push.sh'
-```
-```bash
-source ~/.zshrc
-```
+*Read this in: [Français](#-gitpush---script-dautomatisation-du-flux-de-travail-git)*
 
-# 🚀 Comment utiliser l'alias gitpush
+GitPush is a powerful Bash script that automates your Git workflow, making branch management, commits, and merges faster and more organized. This script guides you through each step of the Git workflow with interactive prompts and colorful feedback.
+
+## ✨ Features
+
+- 🔍 Automatically detects main/master branch
+- 🌿 Creates and manages feature branches with consistent naming
+- 🔄 Handles branch switching, commits, and merges
+- 🚀 Supports Git Flow workflow with develop branch
+- 🎨 Beautiful colored terminal output
+- 🌍 Works on Linux, macOS, and Windows (with Git Bash or WSL)
+
+## 🚀 Installation
+
+### Linux
+
+1. Download the script:
+   ```bash
+   curl -o git-push.sh https://raw.githubusercontent.com/yourusername/gitpush-auto/main/git-push.sh
+   chmod +x git-push.sh
+   ```
+
+2. Create an alias in your shell configuration file:
+
+   **For Bash (in ~/.bashrc):**
+   ```bash
+   echo 'alias gitpush="/path/to/git-push.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+   **For Zsh (in ~/.zshrc):**
+   ```bash
+   echo 'alias gitpush="/path/to/git-push.sh"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+### macOS
+
+1. Download the script:
+   ```bash
+   curl -o git-push.sh https://raw.githubusercontent.com/yourusername/gitpush-auto/main/git-push.sh
+   chmod +x git-push.sh
+   ```
+
+2. Create an alias in your shell configuration file:
+
+   **For Bash (in ~/.bash_profile):**
+   ```bash
+   echo 'alias gitpush="/path/to/git-push.sh"' >> ~/.bash_profile
+   source ~/.bash_profile
+   ```
+
+   **For Zsh (in ~/.zshrc):**
+   ```bash
+   echo 'alias gitpush="/path/to/git-push.sh"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+### Windows
+
+#### Option 1: Using Git Bash
+
+1. Download the script and save it to a location on your computer
+2. Open Git Bash and create an alias:
+   ```bash
+   echo 'alias gitpush="/path/to/git-push.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+#### Option 2: Using Windows Subsystem for Linux (WSL)
+
+1. Install WSL if you haven't already
+2. Follow the Linux installation instructions within your WSL environment
+
+## 🎯 How to Use
+
+Simply navigate to your Git repository and run:
+
 ```bash
 gitpush
 ```
-Lancer l'alias gitpush dans le terminal est très simple ! Assurez-vous d'être dans le bon répertoire de votre projet, puis tapez simplement : gitpush (ou comme vous l'aurez nommer)
 
-# 🎯 Étapes du script git-push.sh
+The script will guide you through the following steps:
 
-Le script git-push.sh va vous guider à travers plusieurs étapes pour organiser votre travail dans Git. Voici chaque étape, expliquée simplement.
+### 1️⃣ Branch Selection
 
-## 🎯 Étapes Automatisées par git-push.sh
-1️⃣ Sélection du Type de Branche
-Un menu interactif vous permet de choisir parmi les types suivants :
+The script checks your current branch and offers options:
+- Continue working on the current branch
+- Create a new branch based on main/master
+- Create a new branch based on develop (if it exists)
 
-- ✨ feature
-- 🔧 fix
-- 🧹 chore
-- 🚨 hotfix
-- 🚀 release
-- ♻️ refactor
-- ⬆️ update
-- 💡 Avantage : Respect des conventions pour un projet organisé.
+If you're on the main/master branch, the script will suggest creating or switching to the develop branch.
 
-#### 💡 Pourquoi ? Cela assure que toutes les branches suivent une convention de nommage, pour un projet bien organisé.
+### 2️⃣ Branch Type Selection
 
-## 2) Entrez les Détails de la Branche et du Commit
+When creating a new branch, you'll be prompted to select a branch type:
+- ✨ feature - New features
+- 🔄 refactor - Code refactoring
+- 🛠️ fix - Bug fixes
+- 🧰 chore - Routine tasks and maintenance
+- 📦 update - Updates to dependencies or documentation
+- 🚑 hotfix - Critical bug fixes
+- 🚀 release - Release preparation
+
+### 3️⃣ Branch Naming
+
+Enter a descriptive name for your branch. The script will create a branch with the format `type/name` (e.g., `feature/user-authentication`).
+
+### 4️⃣ Commit and Push
+
+The script will:
+- Add your changes (`git add .`)
+- Prompt for a commit message
+- Commit your changes
+- Push the branch to the remote repository
+
+### 5️⃣ Merge Options
+
+After pushing your changes, you'll be asked if you want to:
+- Merge your branch into the main branch
+- Keep your branch without merging
+
+If you choose to merge, you'll also have the option to delete the branch after merging.
+
+## 🔧 Troubleshooting
+
+### Script Not Found
+Make sure the path in your alias points to the correct location of the script and that the script has execute permissions (`chmod +x git-push.sh`).
+
+### Color Issues
+If you're not seeing colors in the output, make sure your terminal supports ANSI color codes.
+
+### Git Not Found
+Ensure Git is installed and accessible in your PATH.
+
+### Permission Denied
+If you get a "Permission denied" error, make sure the script has execute permissions:
 ```bash
-"Entrez le nom de la fonctionnalité : "
+chmod +x /path/to/git-push.sh
 ```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+# 📦 GitPush - Script d'Automatisation du Flux de Travail Git
+
+*Read this in: [English](#-gitpush---git-workflow-automation-script)*
+
+GitPush est un puissant script Bash qui automatise votre flux de travail Git, rendant la gestion des branches, des commits et des fusions plus rapide et plus organisée. Ce script vous guide à travers chaque étape du flux de travail Git avec des invites interactives et des retours colorés.
+
+## ✨ Fonctionnalités
+
+- 🔍 Détecte automatiquement la branche main/master
+- 🌿 Crée et gère des branches de fonctionnalités avec une nomenclature cohérente
+- 🔄 Gère les changements de branche, les commits et les fusions
+- 🚀 Prend en charge le flux de travail Git Flow avec la branche develop
+- 🎨 Belle sortie de terminal colorée
+- 🌍 Fonctionne sur Linux, macOS et Windows (avec Git Bash ou WSL)
+
+## 🚀 Installation
+
+### Linux
+
+1. Téléchargez le script :
+   ```bash
+   curl -o git-push.sh https://raw.githubusercontent.com/yourusername/gitpush-auto/main/git-push.sh
+   chmod +x git-push.sh
+   ```
+
+2. Créez un alias dans votre fichier de configuration shell :
+
+   **Pour Bash (dans ~/.bashrc) :**
+   ```bash
+   echo 'alias gitpush="/chemin/vers/git-push.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+   **Pour Zsh (dans ~/.zshrc) :**
+   ```bash
+   echo 'alias gitpush="/chemin/vers/git-push.sh"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+### macOS
+
+1. Téléchargez le script :
+   ```bash
+   curl -o git-push.sh https://raw.githubusercontent.com/yourusername/gitpush-auto/main/git-push.sh
+   chmod +x git-push.sh
+   ```
+
+2. Créez un alias dans votre fichier de configuration shell :
+
+   **Pour Bash (dans ~/.bash_profile) :**
+   ```bash
+   echo 'alias gitpush="/chemin/vers/git-push.sh"' >> ~/.bash_profile
+   source ~/.bash_profile
+   ```
+
+   **Pour Zsh (dans ~/.zshrc) :**
+   ```bash
+   echo 'alias gitpush="/chemin/vers/git-push.sh"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+### Windows
+
+#### Option 1 : Utilisation de Git Bash
+
+1. Téléchargez le script et enregistrez-le à un emplacement sur votre ordinateur
+2. Ouvrez Git Bash et créez un alias :
+   ```bash
+   echo 'alias gitpush="/chemin/vers/git-push.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+#### Option 2 : Utilisation du Sous-système Windows pour Linux (WSL)
+
+1. Installez WSL si ce n'est pas déjà fait
+2. Suivez les instructions d'installation de Linux dans votre environnement WSL
+
+## 🎯 Comment Utiliser
+
+Naviguez simplement vers votre dépôt Git et exécutez :
 
 ```bash
-"Entrez le message de commit : "
+gitpush
 ```
--  Ensuite, le script vous demande deux informations :
-- Nom de la fonctionnalité – C'est un nom descriptif pour la branche.
-- Message de commit – Une courte description de ce que vous avez modifié.
-#### 💡 Pourquoi ? Pour que tout le monde comprenne ce que fait chaque modification.
 
-## 3) Création d'une Nouvelle Branche
+Le script vous guidera à travers les étapes suivantes :
 
+### 1️⃣ Sélection de Branche
+
+Le script vérifie votre branche actuelle et propose des options :
+- Continuer à travailler sur la branche actuelle
+- Créer une nouvelle branche basée sur main/master
+- Créer une nouvelle branche basée sur develop (si elle existe)
+
+Si vous êtes sur la branche main/master, le script suggérera de créer ou de passer à la branche develop.
+
+### 2️⃣ Sélection du Type de Branche
+
+Lors de la création d'une nouvelle branche, vous serez invité à sélectionner un type de branche :
+- ✨ feature - Nouvelles fonctionnalités
+- 🔄 refactor - Refactorisation du code
+- 🛠️ fix - Corrections de bugs
+- 🧰 chore - Tâches routinières et maintenance
+- 📦 update - Mises à jour des dépendances ou de la documentation
+- 🚑 hotfix - Corrections critiques de bugs
+- 🚀 release - Préparation de version
+
+### 3️⃣ Nommage de Branche
+
+Entrez un nom descriptif pour votre branche. Le script créera une branche avec le format `type/nom` (par exemple, `feature/authentification-utilisateur`).
+
+### 4️⃣ Commit et Push
+
+Le script va :
+- Ajouter vos modifications (`git add .`)
+- Demander un message de commit
+- Valider vos modifications
+- Pousser la branche vers le dépôt distant
+
+### 5️⃣ Options de Fusion
+
+Après avoir poussé vos modifications, on vous demandera si vous souhaitez :
+- Fusionner votre branche dans la branche principale
+- Garder votre branche sans fusion
+
+Si vous choisissez de fusionner, vous aurez également la possibilité de supprimer la branche après la fusion.
+
+## 🔧 Dépannage
+
+### Script Non Trouvé
+Assurez-vous que le chemin dans votre alias pointe vers l'emplacement correct du script et que le script a des permissions d'exécution (`chmod +x git-push.sh`).
+
+### Problèmes de Couleur
+Si vous ne voyez pas les couleurs dans la sortie, assurez-vous que votre terminal prend en charge les codes de couleur ANSI.
+
+### Git Non Trouvé
+Assurez-vous que Git est installé et accessible dans votre PATH.
+
+### Permission Refusée
+Si vous obtenez une erreur "Permission refusée", assurez-vous que le script a des permissions d'exécution :
 ```bash
-git checkout -b $BRANCHE_NOM
-```
-- Le script crée une nouvelle branche avec le nom formaté, comme feature/nouvelle_fonction.
-- Il se place ensuite automatiquement sur cette branche pour que vous puissiez y travailler.
-#### 💡 Pourquoi ? Avoir une branche pour chaque fonctionnalité ou correction permet de garder le projet principal propre.
-
-## 4) Ajout et Validation des Modifications
-```bash
-git add .
+chmod +x /chemin/vers/git-push.sh
 ```
 
-```bash
-git commit -m "$MESSAGE_COMMIT"
-```
-- Le script ajoute tous les fichiers modifiés et les valide avec votre message de commit.
-- Cela correspond à ranger tous vos changements dans un dossier avec une petite note pour se rappeler de ce qui a été modifié.
-#### 💡 Pourquoi ? Cela permet d'avoir un historique clair et détaillé des modifications.
+## 📝 Licence
 
-## 5) Envoi de la Nouvelle Branche vers GitHub
-```bashgit push -u origin $BRANCHE_NOM
-```
-- Une fois le commit prêt, le script envoie votre branche sur GitHub.
-- Ainsi, vos collègues ou collaborateurs peuvent voir et examiner vos changements.
-#### 💡 Pourquoi ? Travailler en collaboration est plus facile quand chacun peut accéder aux modifications en temps réel.
-
-## 6) Fusion de la Branche dans develop
-```bash
-git checkout develop
-```
-
-```bash
-git merge --no-ff $BRANCHE_NOM
-```
-
-```bash
-git push origin develop
-```
-- Le script revient ensuite sur develop (la branche de développement principale) et y fusionne votre branche de fonctionnalité.
-- Puis, il pousse develop vers GitHub pour garder tout le monde à jour.
-#### 💡 Pourquoi ? La branche develop est l'endroit où tout le travail en cours est combiné avant d’être validé dans la branche principale.
-
-## 7) Fusion de develop dans main
-```bash
-git checkout main
-```
-
-```bash
-git pull origin main
-```
-
-```bash
-git merge --no-ff develop
-```
-
-```bash
-git push origin main
-```
-- Ensuite, le script passe sur la branche main (la branche finale) et y fusionne tout le travail qui est dans develop.
-- Puis, il pousse main sur GitHub pour que la version officielle soit mise à jour.
-#### 💡 Pourquoi ? La branche main représente la version la plus stable et complète du projet. C'est ce que le public voit.
-
-## 8) Nettoyage des Branches
-```bash
-git branch -d $BRANCHE_NOM
-```
-
-```bash
-git push origin --delete $BRANCHE_NOM
-```
-- Pour garder le dépôt propre, le script supprime la branche locale et la branche distante une fois qu'elles ne sont plus nécessaires.
-#### 💡 Pourquoi ? Cela empêche les branches de s'accumuler et de créer des désordres.
-
-# 🎉 Processus Terminé
-**À la fin, le script affiche :**
-
-```bash
-"Processus complet terminé."
-```
-
-# 📝 Résumé Visuel
-**Étape	Action	Résultat**
-
-1️⃣ Sélection du type	Choisir le type de branche	Assure une convention de nommage
-
-2️⃣ Nom & Message	Saisir le nom et le message	Description claire de la fonctionnalité
-
-3️⃣ Création de branche	Créer une nouvelle branche	Structure les nouvelles fonctionnalités
-
-4️⃣ Commit des changements	Ajouter et valider les modifications	Enregistre tout avec une description
-
-5️⃣ Push sur GitHub	Envoyer la branche de fonctionnalité	La branche est visible pour tous
-
-6️⃣ Fusion dans develop	Revenir sur develop et fusionner	Met à jour la branche de développement
-
-7️⃣ Fusion dans main	Passer à main et y intégrer develop	Mise à jour de la version principale
-
-8️⃣ Nettoyage	Supprimer les branches locales et distantes	Évite les branches inutiles
-
-**En utilisant gitpush, vous n'avez plus à vous soucier des étapes techniques de Git. Ce script rend le processus rapide, clair et collaboratif.**
-
-
+Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
