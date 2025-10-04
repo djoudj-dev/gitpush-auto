@@ -520,6 +520,17 @@ commit_and_push() {
     # Check network connection before pushing
     check_network
 
+    # Pull remote changes before pushing to avoid conflicts
+    echo -e "${YELLOW}${BOLD}Checking for remote updates...${NC}"
+    if git ls-remote --exit-code --heads origin "$branch_name" &>/dev/null; then
+        # Remote branch exists, pull first
+        execute_command "git pull origin \"$branch_name\" --rebase" "Pull remote changes" || {
+            echo -e "${RED}${BOLD}Error pulling remote changes. Please resolve conflicts manually.${NC}"
+            log_message "ERROR" "Failed to pull remote changes for $branch_name"
+            exit 1
+        }
+    fi
+
     execute_command "git push -u origin \"$branch_name\"" "Push to remote repository" || exit 1
 
     echo -e "${GREEN}${BOLD}Branch ${branch_name} has been pushed successfully.${NC}"

@@ -520,6 +520,17 @@ commit_and_push() {
     # Vérifier la connexion réseau avant de pousser
     check_network
 
+    # Récupérer les modifications distantes avant de pousser pour éviter les conflits
+    echo -e "${YELLOW}${BOLD}Vérification des mises à jour distantes...${NC}"
+    if git ls-remote --exit-code --heads origin "$branch_name" &>/dev/null; then
+        # La branche distante existe, récupérer d'abord
+        execute_command "git pull origin \"$branch_name\" --rebase" "Récupération des modifications distantes" || {
+            echo -e "${RED}${BOLD}Erreur lors de la récupération des modifications distantes. Veuillez résoudre les conflits manuellement.${NC}"
+            log_message "ERROR" "Échec de la récupération des modifications distantes pour $branch_name"
+            exit 1
+        }
+    fi
+
     execute_command "git push -u origin \"$branch_name\"" "Push vers le dépôt distant" || exit 1
 
     echo -e "${GREEN}${BOLD}La branche ${branch_name} a été poussée avec succès.${NC}"
