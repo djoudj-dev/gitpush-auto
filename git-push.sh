@@ -11,6 +11,227 @@ ORANGE='\033[38;5;214m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Variables globales
+DRY_RUN=false
+ENABLE_LOGS=true
+LOG_FILE="${HOME}/.gitpush.log"
+CONFIG_FILE="${HOME}/.gitpush.conf"
+VERSION="2.0.0"
+
+# Fonction de logging
+log_message() {
+    local level=$1
+    local message=$2
+    if [[ "$ENABLE_LOGS" == true ]]; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] [$level] $message" >> "$LOG_FILE"
+    fi
+}
+
+# Fonction pour afficher l'aide
+show_help() {
+    echo -e "${BOLD}GitPush v${VERSION}${NC}"
+    echo -e "${YELLOW}Usage:${NC} $(basename "$0") [OPTIONS]"
+    echo ""
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "  ${GREEN}--dry-run${NC}        Prévisualiser les actions sans les exécuter"
+    echo -e "  ${GREEN}--no-logs${NC}        Désactiver l'enregistrement des logs"
+    echo -e "  ${GREEN}--version${NC}        Afficher la version du script"
+    echo -e "  ${GREEN}--help${NC}           Afficher ce message d'aide"
+    echo ""
+    echo -e "${YELLOW}Exemples:${NC}"
+    echo -e "  $(basename "$0")              # Exécution normale"
+    echo -e "  $(basename "$0") --dry-run    # Mode prévisualisation"
+    exit 0
+}
+
+# Traiter les arguments de ligne de commande
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run)
+            DRY_RUN=true
+            echo -e "${CYAN}${BOLD}Mode DRY-RUN activé - Aucune modification ne sera effectuée${NC}"
+            log_message "INFO" "Mode dry-run activé"
+            shift
+            ;;
+        --no-logs)
+            ENABLE_LOGS=false
+            shift
+            ;;
+        --version)
+            echo -e "${BOLD}GitPush v${VERSION}${NC}"
+            exit 0
+            ;;
+        --help)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}${BOLD}Option inconnue: $1${NC}"
+            show_help
+            ;;
+    esac
+done
+
+# Vérifier la connexion réseau
+check_network() {
+    if ! git ls-remote --exit-code origin &>/dev/null; then
+        echo -e "${RED}${BOLD}Erreur:${NC} Impossible de se connecter au dépôt distant."
+        echo -e "${YELLOW}${BOLD}Vérifiez votre connexion réseau et réessayez.${NC}"
+        log_message "ERROR" "Échec de la connexion au dépôt distant"
+        exit 1
+    fi
+    log_message "INFO" "Connexion au dépôt distant réussie"
+}
+
+# Exécuter une commande (respecte le mode dry-run)
+execute_command() {
+    local cmd=$1
+    local description=${2:-"Exécution de la commande"}
+
+    if [[ "$DRY_RUN" == true ]]; then
+        echo -e "${CYAN}${BOLD}[DRY-RUN]${NC} $description: ${YELLOW}$cmd${NC}"
+        log_message "DRY-RUN" "$description: $cmd"
+    else
+        log_message "EXEC" "$description: $cmd"
+        eval "$cmd"
+        return $?
+    fi
+    return 0
+}
+
+# Vérifier si GitHub CLI est installé
+check_gh_cli() {
+    if command -v gh &> /dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# Créer une Pull Request avec GitHub CLI
+create_pull_request() {
+    local branch_name=$1
+    local base_branch=${2:-$MAIN_BRANCH}
+
+    if ! check_gh_cli; then
+        echo -e "${YELLOW}${BOLD}GitHub CLI (gh) n'est pas installé.${NC}"
+        echo -e "${CYAN}Installez-le pour créer automatiquement des Pull Requests: ${BLUE}https://cli.github.com${NC}"
+        log_message "WARN" "GitHub CLI non disponible pour la création de PR"
+        return 1
+    fi
+
+    echo -e "${YELLOW}${BOLD}Voulez-vous créer une Pull Request ?${NC}"
+    select choice in "Oui" "Non"; do
+        case $REPLY in
+            1)
+                read -e -p "Titre de la PR (vide pour utiliser le nom de branche): " pr_title
+                read -e -p "Description de la PR (optionnel): " pr_description
+
+                if [[ -z "$pr_title" ]]; then
+                    pr_title="${branch_name}"
+                fi
+
+                local gh_cmd="gh pr create --base \"$base_branch\" --head \"$branch_name\" --title \"$pr_title\""
+                if [[ -n "$pr_description" ]]; then
+                    gh_cmd="$gh_cmd --body \"$pr_description\""
+                fi
+
+                execute_command "$gh_cmd" "Création de la Pull Request"
+
+                if [[ $? -eq 0 ]]; then
+                    echo -e "${GREEN}${BOLD}Pull Request créée avec succès !${NC}"
+                    log_message "INFO" "Pull Request créée: $pr_title"
+                else
+                    echo -e "${RED}${BOLD}Erreur lors de la création de la Pull Request.${NC}"
+                    log_message "ERROR" "Échec de la création de la Pull Request"
+                fi
+                break
+                ;;
+            2)
+                echo -e "${YELLOW}${BOLD}Pull Request non créée.${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}${BOLD}Choix invalide. Veuillez sélectionner 1 ou 2.${NC}"
+                ;;
+        esac
+    done
+}
+
+# Squash commits interactif
+squash_commits() {
+    local branch_name=$1
+    local base_branch=$2
+
+    echo -e "${YELLOW}${BOLD}Voulez-vous squash vos commits avant le merge ?${NC}"
+    select choice in "Oui" "Non"; do
+        case $REPLY in
+            1)
+                local commit_count=$(git rev-list --count "$base_branch".."$branch_name")
+                if [[ $commit_count -le 1 ]]; then
+                    echo -e "${YELLOW}${BOLD}Un seul commit détecté, pas besoin de squash.${NC}"
+                    return 0
+                fi
+
+                echo -e "${CYAN}${BOLD}$commit_count commits seront squashés.${NC}"
+                execute_command "git reset --soft $base_branch" "Reset soft vers $base_branch"
+
+                if [[ "$DRY_RUN" == false ]]; then
+                    read -e -p "Message du commit squashé: " squash_message
+                    execute_command "git commit -m \"$squash_message\"" "Création du commit squashé"
+                fi
+
+                log_message "INFO" "Commits squashés: $commit_count commits → 1 commit"
+                break
+                ;;
+            2)
+                echo -e "${YELLOW}${BOLD}Pas de squash.${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}${BOLD}Choix invalide. Veuillez sélectionner 1 ou 2.${NC}"
+                ;;
+        esac
+    done
+}
+
+# Créer un tag de version
+create_version_tag() {
+    echo -e "${YELLOW}${BOLD}Voulez-vous créer un tag de version ?${NC}"
+    select choice in "Oui" "Non"; do
+        case $REPLY in
+            1)
+                read -e -p "Nom du tag (ex: v1.0.0): " tag_name
+                read -e -p "Message du tag (optionnel): " tag_message
+
+                if [[ -z "$tag_name" ]]; then
+                    echo -e "${RED}${BOLD}Le nom du tag ne peut pas être vide.${NC}"
+                    return 1
+                fi
+
+                local tag_cmd="git tag"
+                if [[ -n "$tag_message" ]]; then
+                    tag_cmd="$tag_cmd -a \"$tag_name\" -m \"$tag_message\""
+                else
+                    tag_cmd="$tag_cmd \"$tag_name\""
+                fi
+
+                execute_command "$tag_cmd" "Création du tag $tag_name"
+                execute_command "git push origin \"$tag_name\"" "Push du tag vers le dépôt distant"
+
+                echo -e "${GREEN}${BOLD}Tag $tag_name créé et poussé avec succès.${NC}"
+                log_message "INFO" "Tag créé: $tag_name"
+                break
+                ;;
+            2)
+                echo -e "${YELLOW}${BOLD}Aucun tag créé.${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}${BOLD}Choix invalide. Veuillez sélectionner 1 ou 2.${NC}"
+                ;;
+        esac
+    done
+}
+
 # Détecter la branche principale (master ou main)
 detect_main_branch() {
     if git show-ref --verify --quiet refs/heads/main; then
@@ -32,11 +253,15 @@ check_develop_branch_exists() {
 create_develop_branch() {
     local main_branch=$1
     echo -e "${YELLOW}${BOLD}Création de la branche develop à partir de ${BLUE}${main_branch}${NC}..."
-    git checkout "$main_branch" || exit 1
-    git pull origin "$main_branch" || exit 1
-    git checkout -b develop || exit 1
-    git push -u origin develop || exit 1
+    log_message "INFO" "Création de la branche develop depuis $main_branch"
+
+    execute_command "git checkout \"$main_branch\"" "Basculer vers $main_branch" || exit 1
+    execute_command "git pull origin \"$main_branch\"" "Mettre à jour $main_branch" || exit 1
+    execute_command "git checkout -b develop" "Créer la branche develop" || exit 1
+    execute_command "git push -u origin develop" "Pousser develop vers le dépôt distant" || exit 1
+
     echo -e "${GREEN}${BOLD}Branche develop créée avec succès.${NC}"
+    log_message "INFO" "Branche develop créée avec succès"
 }
 
 # Branche principale détectée
@@ -257,33 +482,48 @@ create_branch() {
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD)
 
+    log_message "INFO" "Création de branche: $branch_name depuis $BASE_BRANCH"
+
     # Si on est déjà sur la branche de base, on fait juste un pull
     if [[ "$current_branch" == "$BASE_BRANCH" ]]; then
         echo -e "${GREEN}${BOLD}Mise à jour de la branche ${BASE_BRANCH}...${NC}"
-        git pull origin "$BASE_BRANCH" || exit 1
+        execute_command "git pull origin \"$BASE_BRANCH\"" "Mettre à jour $BASE_BRANCH" || exit 1
     else
         # Sinon, on bascule sur la branche de base
         echo -e "${GREEN}${BOLD}Création de la branche ${branch_name} à partir de ${BASE_BRANCH}...${NC}"
-        git checkout "$BASE_BRANCH" || exit 1
-        git pull origin "$BASE_BRANCH" || exit 1
+        execute_command "git checkout \"$BASE_BRANCH\"" "Basculer vers $BASE_BRANCH" || exit 1
+        execute_command "git pull origin \"$BASE_BRANCH\"" "Mettre à jour $BASE_BRANCH" || exit 1
     fi
 
     # Si on est sur la branche principale et qu'on veut créer une nouvelle branche
     if [[ "$current_branch" == "$BASE_BRANCH" && "$branch_name" != "$current_branch" ]]; then
-        git checkout -b "$branch_name" || exit 1
+        execute_command "git checkout -b \"$branch_name\"" "Créer la branche $branch_name" || exit 1
+        log_message "INFO" "Branche $branch_name créée avec succès"
     fi
 }
 
 # Valider et pousser les modifications
 commit_and_push() {
     local branch_name=$1
+
+    log_message "INFO" "Début du commit et push pour $branch_name"
+
     if ! git diff --quiet || ! git diff --cached --quiet; then
         read -e -p "Entrez le message de commit : " MESSAGE_COMMIT
-        git add . || exit 1
-        git commit -m "$MESSAGE_COMMIT" || exit 1
+
+        execute_command "git add ." "Ajout des modifications" || exit 1
+        execute_command "git commit -m \"$MESSAGE_COMMIT\"" "Création du commit" || exit 1
+
+        log_message "INFO" "Commit créé: $MESSAGE_COMMIT"
     fi
-    git push -u origin "$branch_name" || exit 1
+
+    # Vérifier la connexion réseau avant de pousser
+    check_network
+
+    execute_command "git push -u origin \"$branch_name\"" "Push vers le dépôt distant" || exit 1
+
     echo -e "${GREEN}${BOLD}La branche ${branch_name} a été poussée avec succès.${NC}"
+    log_message "INFO" "Branche $branch_name poussée avec succès"
 }
 
 # Fusionner dans la branche de base
@@ -292,45 +532,106 @@ merge_to_base() {
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD)
 
+    log_message "INFO" "Début de la fusion de $branch_name vers $BASE_BRANCH"
+
     # Si on est déjà sur la branche de base, pas besoin de fusion
     if [[ "$current_branch" == "$BASE_BRANCH" ]]; then
         echo -e "${GREEN}${BOLD}Déjà sur la branche ${BASE_BRANCH}, pas besoin de fusion.${NC}"
+        log_message "INFO" "Déjà sur $BASE_BRANCH, aucune fusion nécessaire"
         return 0
     fi
 
     # Si la branche actuelle est la même que celle qu'on veut fusionner, on pousse simplement
     if [[ "$current_branch" == "$branch_name" ]]; then
         echo -e "${YELLOW}${BOLD}Poussée de la branche ${branch_name}...${NC}"
-        git push origin "$branch_name" || exit 1
+        execute_command "git push origin \"$branch_name\"" "Push de $branch_name" || exit 1
         echo -e "${GREEN}${BOLD}Poussée réussie.${NC}"
+        log_message "INFO" "Branche $branch_name poussée avec succès"
         return 0
     fi
 
+    # Proposer le squash avant merge
+    squash_commits "$branch_name" "$BASE_BRANCH"
+
     # Sinon, on procède à la fusion
     echo -e "${YELLOW}${BOLD}Fusion de ${branch_name} dans ${BASE_BRANCH}...${NC}"
-    git checkout "$BASE_BRANCH" || exit 1
-    git pull origin "$BASE_BRANCH" || exit 1
-    git merge --no-ff "$branch_name" || exit 1
-    git push origin "$BASE_BRANCH" || exit 1
+
+    execute_command "git checkout \"$BASE_BRANCH\"" "Basculer vers $BASE_BRANCH" || exit 1
+    execute_command "git pull origin \"$BASE_BRANCH\"" "Mettre à jour $BASE_BRANCH" || exit 1
+
+    # Tentative de merge avec gestion des conflits
+    if [[ "$DRY_RUN" == false ]]; then
+        if ! git merge --no-ff "$branch_name"; then
+            echo -e "${RED}${BOLD}Conflit de fusion détecté !${NC}"
+            echo -e "${YELLOW}${BOLD}Options disponibles :${NC}"
+            echo -e "  ${GREEN}1) Résoudre manuellement${NC} - Ouvrez vos fichiers et résolvez les conflits"
+            echo -e "  ${RED}2) Annuler le merge${NC} - Annuler la fusion et revenir à l'état précédent"
+
+            select choice in "Résoudre" "Annuler"; do
+                case $REPLY in
+                    1)
+                        echo -e "${YELLOW}${BOLD}Résolvez les conflits dans vos fichiers, puis :${NC}"
+                        echo -e "  1. ${CYAN}git add <fichiers-résolus>${NC}"
+                        echo -e "  2. ${CYAN}git commit${NC}"
+                        echo -e "  3. Relancez ce script pour continuer"
+                        log_message "WARN" "Conflits de merge détectés sur $branch_name → $BASE_BRANCH"
+                        exit 1
+                        ;;
+                    2)
+                        git merge --abort
+                        echo -e "${RED}${BOLD}Fusion annulée.${NC}"
+                        log_message "INFO" "Fusion annulée par l'utilisateur"
+                        exit 1
+                        ;;
+                    *)
+                        echo -e "${RED}${BOLD}Choix invalide.${NC}"
+                        ;;
+                esac
+            done
+        fi
+    else
+        execute_command "git merge --no-ff \"$branch_name\"" "Merge de $branch_name vers $BASE_BRANCH"
+    fi
+
+    execute_command "git push origin \"$BASE_BRANCH\"" "Push de $BASE_BRANCH vers le dépôt distant" || exit 1
+
     echo -e "${GREEN}${BOLD}Fusion réussie.${NC}"
+    log_message "INFO" "Fusion réussie: $branch_name → $BASE_BRANCH"
 }
 
 # Supprimer une branche locale et distante après fusion
 delete_branch() {
     local branch_name=$1
+
+    log_message "INFO" "Suppression de la branche: $branch_name"
+
     echo -e "${YELLOW}${BOLD}Suppression de la branche locale ${branch_name}...${NC}"
-    git branch -d "$branch_name" || {
-        echo -e "${YELLOW}${BOLD}Aucune modification détectée dans ${branch_name}. Suppression forcée.${NC}"
-        git branch -D "$branch_name"
-    }
+
+    if [[ "$DRY_RUN" == false ]]; then
+        if ! git branch -d "$branch_name"; then
+            echo -e "${YELLOW}${BOLD}Aucune modification détectée dans ${branch_name}. Suppression forcée.${NC}"
+            git branch -D "$branch_name"
+        fi
+    else
+        execute_command "git branch -d \"$branch_name\"" "Suppression de la branche locale $branch_name"
+    fi
+
     echo -e "${GREEN}${BOLD}Branche locale supprimée avec succès.${NC}"
 
     # Suppression de la branche distante
     echo -e "${YELLOW}${BOLD}Suppression de la branche distante ${branch_name}...${NC}"
-    git push origin --delete "$branch_name" || {
-        echo -e "${RED}${BOLD}Erreur : impossible de supprimer la branche distante ${branch_name}.${NC}"
-    }
-    echo -e "${GREEN}${BOLD}Branche distante ${branch_name} supprimée avec succès.${NC}"
+
+    if [[ "$DRY_RUN" == false ]]; then
+        if ! git push origin --delete "$branch_name"; then
+            echo -e "${RED}${BOLD}Erreur : impossible de supprimer la branche distante ${branch_name}.${NC}"
+            log_message "ERROR" "Échec de la suppression de la branche distante $branch_name"
+        else
+            echo -e "${GREEN}${BOLD}Branche distante ${branch_name} supprimée avec succès.${NC}"
+            log_message "INFO" "Branche $branch_name supprimée (locale et distante)"
+        fi
+    else
+        execute_command "git push origin --delete \"$branch_name\"" "Suppression de la branche distante $branch_name"
+    fi
 }
 
 # Script principal
@@ -355,12 +656,22 @@ fi
 # Valider et pousser les modifications
 commit_and_push "$BRANCHE_TRAVAIL"
 
+# Proposer de créer une Pull Request
+if [[ "$BRANCHE_TRAVAIL" != "$MAIN_BRANCH" && "$BRANCHE_TRAVAIL" != "develop" ]]; then
+    create_pull_request "$BRANCHE_TRAVAIL" "$BASE_BRANCH"
+fi
+
 # Demander à l'utilisateur s'il souhaite fusionner dans la branche principale
 echo -e "${YELLOW}${BOLD}Souhaitez-vous fusionner cette branche dans ${BLUE}${MAIN_BRANCH}${NC} ?"
 select choice in "Oui" "Non"; do
     case $REPLY in
         1)
             merge_to_base "$BRANCHE_TRAVAIL"
+
+            # Proposer de créer un tag de version après une fusion réussie
+            if [[ "$BASE_BRANCH" == "$MAIN_BRANCH" ]]; then
+                create_version_tag
+            fi
 
             # Demander si l'utilisateur veut supprimer la branche après fusion
             if [[ "$BRANCHE_TRAVAIL" != "$MAIN_BRANCH" ]]; then
@@ -393,4 +704,5 @@ select choice in "Oui" "Non"; do
     esac
 done
 
-echo -e "${GREEN}${BOLD}Processus terminé avec succès. N'oubliez pas de créer une Pull Request sur GitHub si nécessaire.${NC}"
+echo -e "${GREEN}${BOLD}Processus terminé avec succès !${NC}"
+log_message "INFO" "Script terminé avec succès"
