@@ -1,5 +1,5 @@
 # 📦 GitPush - Git Workflow Automation Script
-https://github.com/djoudj-dev/gitpush-auto/blob/main/version-fr.png
+<img src="https://github.com/djoudj-dev/gitpush-auto/blob/main/version-fr.png" alt="version-fr">
 <div style="text-align: center;">
   <img src="https://img.shields.io/badge/Version-2.0.0-brightgreen" alt="Version 2.0.0">
   <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platform: Linux | macOS | Windows">
