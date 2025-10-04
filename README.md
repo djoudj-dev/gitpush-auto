@@ -1,5 +1,5 @@
 # 📦 GitPush - Git Workflow Automation Script
-<img src="https://github.com/djoudj-dev/gitpush-auto/blob/main/version-fr.png" alt="version-fr">
+
 <div style="text-align: center;">
   <img src="https://img.shields.io/badge/Version-2.0.0-brightgreen" alt="Version 2.0.0">
   <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-blue" alt="Platform: Linux | macOS | Windows">
@@ -311,7 +311,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 # 📦 GitPush - Script d'Automatisation du Flux de Travail Git
-
+<img src="https://github.com/djoudj-dev/gitpush-auto/blob/main/version-fr.png" alt="version-fr">
 *Read this in: [English](#-gitpush---git-workflow-automation-script)*
 
 GitPush est un puissant script Bash qui automatise votre flux de travail Git, rendant la gestion des branches, des commits et des fusions plus rapide et plus organisée. Ce script vous guide à travers chaque étape du flux de travail Git avec des invites interactives et des retours colorés.
